@@ -1,0 +1,96 @@
+Multi-Tier Architecture Assignment
+*Creating VPC-
+*Steps- Go to VPC-Create VPC Provide a suitable name (say demo-vpc) 
+Provide IPV4 CIDR as 10.0.0.0/16 (say)#By providing 10.0.0.0/16 as CIDR, we will get 65536 IP's, it means we will get very large number of servers 
+within our VPC 
+Keep tenancy to default Provide suitable tag (key=name, value=demo-vpc) Create VPC 
+*Creating 2 subnets-
+*Steps- 
+On the left panel of VPC console window-Subnets-Create subnet 
+Select our own VPC (demo-vpc) 
+Provide subnet name as private-subnet-1a (say) 
+Select AZ as AZ-1a #This will create our subnet within AZ-1a of N. Virginia region 
+Open the Subnet CIDR tool 
+Provide VPC CIDR (10.0.0.0/16) in Network Address Block 
+Select number of subnets as 16 (say) 
+Pick any random subnet address (10.0.32.0) from below to obtain the Subnet CIDR (10.0.32.0/20) 
+Add new subnet 
+Provide name as public-subnet-1a 
+Select AZ as AZ-1a #This will create our subnet within AZ-1a of N. Virginia region 
+Open the Subnet CIDR tool
+Provide VPC CIDR (10.0.0.0/16) in Network Address Block 
+Select number of subnets as 16 (say) 
+Pick any random subnet address (10.0.48.0) from below to obtain the Subnet CIDR (10.0.48.0/20)
+Create subnet 
+*Note-By default, every subnet we create is a private subnet 
+*Converting public-subnet-1a to public subnet-
+*Steps- Select public-subnet-1a-Actions-Edit subnet settings 
+Enable auto-assign Public IPV4 address- Save
+We have changed subnet from private to public 
+*Launching public (web) server in public subnet-
+*Steps- Go to EC2- Launch instance- Provide name as public (web) server- Select Amazon Linux 2023 AMI- Instance type as t2.micro 
+Proceed without any key-pair 
+Edit network settings- Select our own VPC (demo-vpc) and select public-subnet-1a as subnet 
+Keep other configurations to default 
+Launch instance 
+*Launching private (application) server in private subnet-
+*Steps- Go to EC2- Launch instance -Provide name as private (application) server- Select Amazon Linux 2023 AMI- Instance type as t2.micro
+Proceed without any key-pair -Edit network settings -Select our own VPC (demo-vpc) and select private-subnet-1a as subnet 
+Keep other configurations to default -Launch instance 
+*Allowing SSH and HTTP rule from internet to public server-
+*Steps- Select the public server-Security tab- Edit inbound rules- Add rule-Type as HTTP and source as Anywhere IPV4-Save rules
+*Allowing only SSH rule from public server to private server-
+*Steps- Select private server-Security tab-Edit inbound rules- Add rule-Type as SSH, source as Anywhere IPV4 and select security group 
+of public (web) server -Save rules 
+*Launching a MySQL RDS instance-
+*Steps- Go to RDS-Create Database (DB)- Select standard create method Select MySQL engine type- Select engine version as MySQL 8.0.35
+Select free-tier template- Provide master password as Daniyal2000
+Keep other configurations to default
+Under connectivity-Select our own VPC (demo-vpc) -Select public access as No- Under existing VPC security groups, select the security group 
+(launch-wizard-4) of private (application) server- Create DB 
+*Setting up Route 53-
+*Steps- Go to Route 53 -Register domain- Purchase any domain
+On the left panel-Create hosted zone- Provide the domain name we purchased -Create hosted zone Click on hosted zone name-Create record Provide any 
+record name (subdomain) (say Daniyal) Under record value, provide the public IP address of public (web) server Create record
+*We have successfully directed the entire public traffic towards public (web) server. 
+Note- Development team can now test their code on the private (application) server since code should always be tested on the backend part. 
+All the necessary updations and provisioning will be done by AWS itself.
+*Cloud formation and SNS Assignment-
+*Creating Cloud formation template (CFT) for above multi-tier architecture in Notepad-
+*Steps- Go to Cloud formation S3 documentation in google From left panel of services, select EC2 Select AWS:EC2:Instance From the right panel, 
+go to examples- Copy the YAML syntax to create an EC2 instance and paste in Notepad. From below, copy the YAML syntax that automatically 
+assigns a public IP address to server hence making it public (web) server and paste in notepad.
+Again Copy the YAML syntax to create an EC2 instance and paste in Notepad for creating a private (application) server
+Go to AWS:EC2:Security group Copy the YAML syntax and paste in notepad for public (web) server first and then edit rules 
+Again Copy the YAML syntax and paste in notepad for private (application) server and then edit rules From left panel of services, 
+select RDS Select AWS:RDS:DBInstance Copy the YAML syntax to create an RDS MySQL DB Instance and paste in notepad
+If we delete our Cloud Formation stack, all the resources deployed by that stack are also deleted. To not allow RDS DB instance to get deleted, 
+Include one line syntax- DeletionPolicy:Retain so that even if we delete our stack, RDS DB instance is not deleted. 
+Select AWS:RDS:DBSecurity group Copy the YAML syntax and paste in notepad From the left panel, select Route 53 service 
+Select AWS:Route53:Hosted zone Copy and paste the YAML syntax to create a hosted zone Copy and paste the YAML syntax to create record 
+Select AWS:Route53:RecordSet Alias Target Copy and paste the YAML syntax Edit the DNS name and Hosted zone ID 
+*Our Cloud formation template (CFT) is ready. Save it in notepad. 
+*Creating stack from above CFT-
+*Steps- Go to cloud formation-Create stack Upload the above CFT file-Next Provide stack name as demo-stack- Enter DB password and DB Root Password 
+both as Daniyal2000 DB name as database1 DB user as admin-Next Under configure stack options-Go to notification options 
+Create a new SNS topic Provide topic name as sns-demo Enter our own mail-id 
+Create SNS topic Confirm subscription from Gmail Next-Submit
+Note-Our stack is created successfully. 
+Even if we delete our stack, our MySQL DB will not be deleted because we included DeletionPolicy:Retain in its CFT code. 
+*SQS and SES Assignment
+*SQS-
+*Creating a FIFO Queue-
+*Steps- Go to SQS Create queue Select FIFO type Provide name as sqs-demo.fifo Keep other configurations to default Create queue 
+*Testing messages-
+*Steps- Click on send and receive messages Under message body, provide message "This is an SQS queue" Send message 
+Our message is now available in the queue. To receive the message, we have to poll for them. 
+Polling automatically receives all the messages present inside the queue. Click on poll for messages 
+*We received our message successfully. 
+*SES-
+*Registering mail in SES-
+*Steps- Go to SES On the left panel-Identities Create identity Select email address as identity type Provide our own email address 
+Create identity Verify it from Gmail and identity status is verified 
+*Sending test mail-
+*Steps- Send test email Select custom scenario Provide our own email id in custom recipient Provide subject as "This is an SES mail" 
+Provide message body as "This is an SES mail" Send test email 
+*We successfully received mail from our own Email ID.
